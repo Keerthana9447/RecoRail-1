@@ -1,0 +1,65 @@
+{
+  "name": "MenuItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the menu item"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "main",
+        "side",
+        "beverage",
+        "dessert",
+        "appetizer",
+        "condiment"
+      ],
+      "description": "Item category"
+    },
+    "cuisine": {
+      "type": "string",
+      "enum": [
+        "indian",
+        "chinese",
+        "italian",
+        "american",
+        "mexican",
+        "thai",
+        "japanese",
+        "mediterranean"
+      ],
+      "description": "Cuisine type"
+    },
+    "price": {
+      "type": "number",
+      "description": "Price of the item"
+    },
+    "is_veg": {
+      "type": "boolean",
+      "default": false,
+      "description": "Is the item vegetarian"
+    },
+    "popularity_score": {
+      "type": "number",
+      "description": "Popularity score 0-100"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL for item image"
+    },
+    "complements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of complementary item names"
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "price"
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "name": "RecommendationLog",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Unique session identifier"
+    },
+    "cart_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Items in cart at time of recommendation"
+    },
+    "recommended_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Items that were recommended"
+    },
+    "accepted_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Items user accepted from recommendations"
+    },
+    "user_segment": {
+      "type": "string",
+      "enum": [
+        "budget",
+        "premium",
+        "frequent",
+        "occasional",
+        "new_user"
+      ],
+      "description": "User segment"
+    },
+    "meal_time": {
+      "type": "string",
+      "enum": [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "late_night"
+      ],
+      "description": "Meal time context"
+    },
+    "aov_before": {
+      "type": "number",
+      "description": "Cart value before recommendations"
+    },
+    "aov_after": {
+      "type": "number",
+      "description": "Cart value after accepting recommendations"
+    },
+    "latency_ms": {
+      "type": "number",
+      "description": "Recommendation generation latency in ms"
+    },
+    "model_version": {
+      "type": "string",
+        "description": "Version of the recommendation model used"
+    }
+},
+"required": [
+    "session_id"
+  ]
+}
