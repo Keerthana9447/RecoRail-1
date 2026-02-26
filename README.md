@@ -1,6 +1,6 @@
-# Getting Started with Create React App
+# RecoRail
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+RecoRail is a recommendation simulator built with React and Vite.
 
 ## Available Scripts
 
