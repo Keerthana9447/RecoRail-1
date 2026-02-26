@@ -20,10 +20,11 @@ export default function MenuBrowser({ onAdd, cartItemIds }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
   const { data: menuItems = [], isLoading } = useQuery({
     queryKey: ["menuItems"],
     queryFn: () =>
-      fetch("http://localhost:8000/menu-items")
+      fetch(`${API_BASE_URL}/api/menu-items`)
         .then(res => res.json())
         .catch(() => []),
     refetchInterval: 5000, // Refetch every 5 seconds to catch updates

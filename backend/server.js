@@ -118,93 +118,102 @@ function generateRecommendations(cartItems, context) {
   return scores.slice(0,6);
 }
 
-// Endpoints
-app.get('/', (req, res) => {
-  res.json({ message:'Backend running' });
-});
+// Endpoints registration helper
+function registerRoutes(appInstance) {
+  appInstance.get('/', (req, res) => {
+    res.json({ message:'Backend running' });
+  });
 
-// Menu items CRUD
-app.get('/menu-items', (req,res)=>{
-  const stmt = db.prepare('SELECT * FROM menu_items ORDER BY datetime(created_date) DESC');
-  res.json(stmt.all());
-});
+  // Menu items CRUD
+  appInstance.get('/menu-items', (req,res)=>{
+    const stmt = db.prepare('SELECT * FROM menu_items ORDER BY datetime(created_date) DESC');
+    res.json(stmt.all());
+  });
 
-app.post('/menu-items',(req,res)=>{
-  const { name, category, cuisine, price, is_veg, popularity_score } = req.body;
-  const id = `item_${uuidv4()}`;
-  const now = new Date().toISOString();
-  const stmt = db.prepare(`
-    INSERT INTO menu_items (id,name,category,cuisine,price,is_veg,popularity_score,created_date)
-    VALUES (?,?,?,?,?,?,?,?)
-  `);
-  stmt.run(id,name,category,cuisine,price,is_veg?1:0,popularity_score,now);
-  res.json({ id,name,category,cuisine,price,is_veg,popularity_score,created_date: now });
-});
+  appInstance.post('/menu-items',(req,res)=>{
+    const { name, category, cuisine, price, is_veg, popularity_score } = req.body;
+    const id = `item_${uuidv4()}`;
+    const now = new Date().toISOString();
+    const stmt = db.prepare(`
+      INSERT INTO menu_items (id,name,category,cuisine,price,is_veg,popularity_score,created_date)
+      VALUES (?,?,?,?,?,?,?,?)
+    `);
+    stmt.run(id,name,category,cuisine,price,is_veg?1:0,popularity_score,now);
+    res.json({ id,name,category,cuisine,price,is_veg,popularity_score,created_date: now });
+  });
 
-app.put('/menu-items/:id',(req,res)=>{
-  const id = req.params.id;
-  const existing = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(id);
-  if (!existing) return res.status(404).json({error:'not found'});
-  const { name, category, cuisine, price, is_veg, popularity_score } = req.body;
-  const stmt = db.prepare(`
-    UPDATE menu_items SET name=?,category=?,cuisine=?,price=?,is_veg=?,popularity_score=? WHERE id=?
-  `);
-  stmt.run(name,category,cuisine,price,is_veg?1:0,popularity_score,id);
-  const updated = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(id);
-  res.json(updated);
-});
+  appInstance.put('/menu-items/:id',(req,res)=>{
+    const id = req.params.id;
+    const existing = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(id);
+    if (!existing) return res.status(404).json({error:'not found'});
+    const { name, category, cuisine, price, is_veg, popularity_score } = req.body;
+    const stmt = db.prepare(`
+      UPDATE menu_items SET name=?,category=?,cuisine=?,price=?,is_veg=?,popularity_score=? WHERE id=?
+    `);
+    stmt.run(name,category,cuisine,price,is_veg?1:0,popularity_score,id);
+    const updated = db.prepare('SELECT * FROM menu_items WHERE id = ?').get(id);
+    res.json(updated);
+  });
 
-app.delete('/menu-items/:id',(req,res)=>{
-  const id=req.params.id;
-  db.prepare('DELETE FROM menu_items WHERE id = ?').run(id);
-  res.json({status:'deleted'});
-});
+  appInstance.delete('/menu-items/:id',(req,res)=>{
+    const id=req.params.id;
+    db.prepare('DELETE FROM menu_items WHERE id = ?').run(id);
+    res.json({status:'deleted'});
+  });
 
-// Recommendation endpoint
-app.post('/recommend',(req,res)=>{
-  const { cart_items, meal_time, cuisine, user_segment, city } = req.body;
-  const start = Date.now();
-  const recs = generateRecommendations(cart_items || [], { meal_time, cuisine, user_segment, city });
-  const latency = Date.now()-start;
-  const logId = `log_${uuidv4()}`;
-  const now = new Date().toISOString();
-  const insertLog = db.prepare(`
-    INSERT INTO rec_logs (id,session_id,meal_time,user_segment,city,cart_items,recommended_items,accepted_items,aov_before,aov_after,latency_ms,created_date)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-  `);
-  insertLog.run(logId,uuidv4(),meal_time,user_segment,city,
-    JSON.stringify(cart_items||[]),
-    JSON.stringify(recs),
-    JSON.stringify([]),
-    0,0,latency,now);
-  res.json({ recommendations: recs, latency_ms: latency });
-});
-
-// Logs endpoints
-app.get('/logs',(req,res)=>{
-  const rows = db.prepare('SELECT * FROM rec_logs ORDER BY datetime(created_date) DESC').all();
-  res.json(rows.map(r => ({
-    ...r,
-    cart_items: JSON.parse(r.cart_items || '[]'),
-    recommended_items: JSON.parse(r.recommended_items || '[]'),
-    accepted_items: JSON.parse(r.accepted_items || '[]'),
-  })));
-});
-
-app.post('/logs',(req,res)=>{
-  const { session_id, meal_time, user_segment, city, cart_items, recommended_items, accepted_items, aov_before, aov_after, latency_ms } = req.body;
-  const id = `log_${uuidv4()}`;
-  const now = new Date().toISOString();
-  db.prepare(`
-    INSERT INTO rec_logs (id,session_id,meal_time,user_segment,city,cart_items,recommended_items,accepted_items,aov_before,aov_after,latency_ms,created_date)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-  `).run(id,session_id,meal_time,user_segment,city,
+  // Recommendation endpoint
+  appInstance.post('/recommend',(req,res)=>{
+    const { cart_items, meal_time, cuisine, user_segment, city } = req.body;
+    const start = Date.now();
+    const recs = generateRecommendations(cart_items || [], { meal_time, cuisine, user_segment, city });
+    const latency = Date.now()-start;
+    const logId = `log_${uuidv4()}`;
+    const now = new Date().toISOString();
+    const insertLog = db.prepare(`
+      INSERT INTO rec_logs (id,session_id,meal_time,user_segment,city,cart_items,recommended_items,accepted_items,aov_before,aov_after,latency_ms,created_date)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    `);
+    insertLog.run(logId,uuidv4(),meal_time,user_segment,city,
       JSON.stringify(cart_items||[]),
-      JSON.stringify(recommended_items||[]),
-      JSON.stringify(accepted_items||[]),
-      aov_before||0,aov_after||0,latency_ms||0,now);
-  res.json({ id, session_id, meal_time, user_segment, city, cart_items, recommended_items, accepted_items, aov_before, aov_after, latency_ms, created_date: now });
-});
+      JSON.stringify(recs),
+      JSON.stringify([]),
+      0,0,latency,now);
+    res.json({ recommendations: recs, latency_ms: latency });
+  });
+
+  // Logs endpoints
+  appInstance.get('/logs',(req,res)=>{
+    const rows = db.prepare('SELECT * FROM rec_logs ORDER BY datetime(created_date) DESC').all();
+    res.json(rows.map(r => ({
+      ...r,
+      cart_items: JSON.parse(r.cart_items || '[]'),
+      recommended_items: JSON.parse(r.recommended_items || '[]'),
+      accepted_items: JSON.parse(r.accepted_items || '[]'),
+    })));
+  });
+
+  appInstance.post('/logs',(req,res)=>{
+    const { session_id, meal_time, user_segment, city, cart_items, recommended_items, accepted_items, aov_before, aov_after, latency_ms } = req.body;
+    const id = `log_${uuidv4()}`;
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO rec_logs (id,session_id,meal_time,user_segment,city,cart_items,recommended_items,accepted_items,aov_before,aov_after,latency_ms,created_date)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    `).run(id,session_id,meal_time,user_segment,city,
+        JSON.stringify(cart_items||[]),
+        JSON.stringify(recommended_items||[]),
+        JSON.stringify(accepted_items||[]),
+        aov_before||0,aov_after||0,latency_ms||0,now);
+    res.json({ id, session_id, meal_time, user_segment, city, cart_items, recommended_items, accepted_items, aov_before, aov_after, latency_ms, created_date: now });
+  });
+}
+
+// register on root path and under /api
+registerRoutes(app);
+const apiRouter = express.Router();
+registerRoutes(apiRouter);
+app.use('/api', apiRouter);
+
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT,()=>{ console.log(`Backend listening on ${PORT}`); });

@@ -5,11 +5,12 @@ import ContextPanel from "../components/simulator/ContextPanel";
 import MenuBrowser from "../components/simulator/MenuBrowser";
 
 // Get recommendations from backend
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 async function getRecommendations(cartItems, context) {
   if (cartItems.length === 0) return [];
 
   try {
-    const response = await fetch("http://localhost:8000/recommend", {
+    const response = await fetch(`${API_BASE_URL}/api/recommend`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

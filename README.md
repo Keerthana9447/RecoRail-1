@@ -74,13 +74,33 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 ## Local Backend
 A simple Node/Express backend serves menu items and recommendation logic used by the simulator, menu items, and logs pages.
 
-To start it:
+To start it locally you have two options:
 
 ```bash
+# run the express server (used during development)
 npm install        # ensure dependencies are installed
-npm run backend    # launches server on http://localhost:8000
+VITE_API_BASE_URL=http://localhost:8000 npm run backend
+# or simply `npm run backend` on Windows PowerShell, then set the env var in
+# the terminal where you launch the frontend as below
 ```
 
+When running the React app you can point it at the local server by setting:
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000 npm run dev
+```
+
+If `VITE_API_BASE_URL` is not provided the frontend will call the built‑in
+serverless functions under `/api` (this is what happens in production on
+Vercel).
+
+### Deploying to Vercel
+Push the repository to a Git provider (GitHub/GitLab/Bitbucket) and import
+it in Vercel. The `api/` directory contains the serverless endpoints, which
+will automatically be served under `/api/*`. No extra configuration is needed.
+The app itself will be built by Vite and served statically. State is in-memory
+on each function invocation, so menu items/logs reset when the function cold
+starts.
 The API endpoints are:
 
 - `GET /menu-items` — list items (sorted newest first)

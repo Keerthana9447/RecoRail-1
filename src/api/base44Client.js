@@ -1,11 +1,13 @@
-const API_BASE_URL = "http://localhost:8000";
+// Determine API base URL. During development we talk to the local Express server
+// (which remains useful for folks running `npm run backend`). In production the
+// serverless functions live under `/api` so we simply use a relative path.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 // Real API client
-export const base44 = {
-  entities: {
+export const base44 = {  entities: {
     RecommendationLog: {
       list: (sort = "-created_date", limit = 100) => 
-        fetch(`${API_BASE_URL}/logs?skip=0&limit=${limit}`)
+        fetch(`${API_BASE_URL}/api/logs?skip=0&limit=${limit}`)
           .then(res => res.json())
           .catch(err => {
             console.error("Error fetching logs:", err);
@@ -14,7 +16,7 @@ export const base44 = {
     },
     MenuItem: {
       list: (sort = "-created_date", limit = 200) =>
-        fetch(`${API_BASE_URL}/menu-items?skip=0&limit=${limit}`)
+        fetch(`${API_BASE_URL}/api/menu-items?skip=0&limit=${limit}`)
           .then(res => res.json())
           .catch(err => {
             console.error("Error fetching menu items:", err);
@@ -22,7 +24,7 @@ export const base44 = {
           }),
       
       create: (data) =>
-        fetch(`${API_BASE_URL}/menu-items`, {
+        fetch(`${API_BASE_URL}/api/menu-items`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
@@ -34,7 +36,7 @@ export const base44 = {
           }),
       
       update: (id, data) =>
-        fetch(`${API_BASE_URL}/menu-items/${id}`, {
+        fetch(`${API_BASE_URL}/api/menu-items/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data),
@@ -46,7 +48,7 @@ export const base44 = {
           }),
       
       delete: (id) =>
-        fetch(`${API_BASE_URL}/menu-items/${id}`, { method: "DELETE" })
+        fetch(`${API_BASE_URL}/api/menu-items/${id}`, { method: "DELETE" })
           .then(res => res.json())
           .catch(err => {
             console.error("Error deleting menu item:", err);
@@ -60,7 +62,7 @@ export const base44 = {
       InvokeLLM: async (params) => {
         try {
           // Get menu items for recommendation
-          const menuItems = await fetch(`${API_BASE_URL}/menu-items?skip=0&limit=200`)
+          const menuItems = await fetch(`${API_BASE_URL}/api/menu-items?skip=0&limit=200`)
             .then(res => res.json())
             .catch(() => []);
 
@@ -72,7 +74,7 @@ export const base44 = {
           const cityMatch = params.prompt.match(/City: (\w+)/);
 
           // Call recommendation endpoint
-          const response = await fetch(`${API_BASE_URL}/recommend`, {
+          const response = await fetch(`${API_BASE_URL}/api/recommend`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

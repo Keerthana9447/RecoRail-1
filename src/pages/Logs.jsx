@@ -13,9 +13,13 @@ export default function Logs() {
   const [mealFilter, setMealFilter] = useState("all");
   const [segmentFilter, setSegmentFilter] = useState("all");
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ["recLogs"],
-    queryFn: () => base44.entities.RecommendationLog.list("-created_date", 100),
+    queryFn: () =>
+      fetch(`${API_BASE_URL}/api/logs`)
+        .then(res => res.json())
+        .catch(() => []),
     refetchInterval: 5000, // poll every 5s to pick up new logs
   });
 

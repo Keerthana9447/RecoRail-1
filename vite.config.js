@@ -11,6 +11,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src')
     }
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   plugins: [
     // base44({
     //   // Support for legacy code that imports the base44 SDK with @/integrations, @/entities, etc.
