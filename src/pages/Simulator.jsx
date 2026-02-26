@@ -1,53 +1,32 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import CartPanel from "../components/simulator/CartPanel";
 import RecommendationRail from "../components/simulator/RecommendationRail";
 import ContextPanel from "../components/simulator/ContextPanel";
 import MenuBrowser from "../components/simulator/MenuBrowser";
 
-// Simulated recommendation engine using LLM
+// Get recommendations from backend
 async function getRecommendations(cartItems, context) {
   if (cartItems.length === 0) return [];
 
-  const cartDesc = cartItems.map(i => `${i.name} (${i.category}, ₹${i.price}, ${i.is_veg ? "veg" : "non-veg"})`).join(", ");
+  try {
+    const response = await fetch("http://localhost:8000/recommend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cart_items: cartItems,
+        meal_time: context.mealTime,
+        cuisine: context.cuisine,
+        user_segment: context.userSegment,
+        city: context.city,
+      }),
+    });
 
-  const result = await base44.integrations.Core.InvokeLLM({
-    prompt: `You are a food delivery recommendation engine. Given the current cart and context, suggest exactly 6 complementary add-on items that would complete the meal. Be contextually relevant.
-
-Current cart: ${cartDesc}
-Meal time: ${context.mealTime}
-Cuisine preference: ${context.cuisine}
-User segment: ${context.userSegment} (${context.userSegment === "budget" ? "price sensitive, suggest affordable items" : context.userSegment === "premium" ? "open to premium items and larger portions" : "balanced preferences"})
-City: ${context.city}
-
-Rules:
-- Don't recommend items already in cart
-- Suggest items that complement what's there (e.g., biryani needs salan, pizza needs beverage)
-- Include a mix of categories (sides, beverages, desserts, condiments)
-- Score each item 0-1 based on how complementary it is
-- Prices should be realistic for Indian food delivery`,
-    response_json_schema: {
-      type: "object",
-      properties: {
-        recommendations: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              category: { type: "string", enum: ["main", "side", "beverage", "dessert", "appetizer", "condiment"] },
-              price: { type: "number" },
-              is_veg: { type: "boolean" },
-              score: { type: "number" },
-              reason: { type: "string" }
-            }
-          }
-        }
-      }
-    }
-  });
-
-  return result.recommendations || [];
+    const data = await response.json();
+    return data.recommendations || [];
+  } catch (err) {
+    console.error("Error getting recommendations:", err);
+    return [];
+  }
 }
 
 export default function Simulator() {

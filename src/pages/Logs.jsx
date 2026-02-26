@@ -16,6 +16,7 @@ export default function Logs() {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ["recLogs"],
     queryFn: () => base44.entities.RecommendationLog.list("-created_date", 100),
+    refetchInterval: 5000, // poll every 5s to pick up new logs
   });
 
   const filtered = logs.filter(log => {

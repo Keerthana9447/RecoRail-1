@@ -68,3 +68,28 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+---
+
+## Local Backend
+A simple Node/Express backend serves menu items and recommendation logic used by the simulator, menu items, and logs pages.
+
+To start it:
+
+```bash
+npm install        # ensure dependencies are installed
+npm run backend    # launches server on http://localhost:8000
+```
+
+The API endpoints are:
+
+- `GET /menu-items` — list items (sorted newest first)
+- `POST /menu-items` — create a new item
+- `PUT /menu-items/:id` — update an item
+- `DELETE /menu-items/:id` — remove an item
+- `POST /recommend` — body includes cart_items, meal_time, cuisine, user_segment, city; returns up to 6 recommendations
+- `GET /logs` — returns recommendation logs
+- `POST /logs` — create a log entry
+
+Menu items are seeded with sample data on first server start; state is persisted to `backend/data.db` using SQLite. Logs are also stored there and survive restarts.
+

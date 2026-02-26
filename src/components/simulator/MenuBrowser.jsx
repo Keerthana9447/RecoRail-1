@@ -1,28 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
-
-const SAMPLE_MENU = [
-  { id: "m1", name: "Chicken Biryani", category: "main", cuisine: "indian", price: 280, is_veg: false, popularity_score: 95 },
-  { id: "m2", name: "Paneer Butter Masala", category: "main", cuisine: "indian", price: 220, is_veg: true, popularity_score: 90 },
-  { id: "m3", name: "Butter Naan", category: "side", cuisine: "indian", price: 45, is_veg: true, popularity_score: 88 },
-  { id: "m4", name: "Mirchi Ka Salan", category: "condiment", cuisine: "indian", price: 80, is_veg: true, popularity_score: 72 },
-  { id: "m5", name: "Raita", category: "condiment", cuisine: "indian", price: 50, is_veg: true, popularity_score: 75 },
-  { id: "m6", name: "Gulab Jamun", category: "dessert", cuisine: "indian", price: 90, is_veg: true, popularity_score: 82 },
-  { id: "m7", name: "Masala Chai", category: "beverage", cuisine: "indian", price: 40, is_veg: true, popularity_score: 70 },
-  { id: "m8", name: "Mango Lassi", category: "beverage", cuisine: "indian", price: 60, is_veg: true, popularity_score: 78 },
-  { id: "m9", name: "Hakka Noodles", category: "main", cuisine: "chinese", price: 180, is_veg: true, popularity_score: 85 },
-  { id: "m10", name: "Chicken Manchurian", category: "main", cuisine: "chinese", price: 220, is_veg: false, popularity_score: 83 },
-  { id: "m11", name: "Spring Rolls", category: "appetizer", cuisine: "chinese", price: 120, is_veg: true, popularity_score: 76 },
-  { id: "m12", name: "Fried Rice", category: "main", cuisine: "chinese", price: 160, is_veg: true, popularity_score: 88 },
-  { id: "m13", name: "Hot & Sour Soup", category: "appetizer", cuisine: "chinese", price: 100, is_veg: false, popularity_score: 71 },
-  { id: "m14", name: "Cola", category: "beverage", cuisine: "american", price: 45, is_veg: true, popularity_score: 65 },
-  { id: "m15", name: "Margherita Pizza", category: "main", cuisine: "italian", price: 250, is_veg: true, popularity_score: 92 },
-  { id: "m16", name: "Garlic Bread", category: "side", cuisine: "italian", price: 110, is_veg: true, popularity_score: 80 },
-];
+import { Skeleton } from "@/components/ui/skeleton";
 
 const categoryColors = {
   main: "bg-primary/10 text-primary",
@@ -37,9 +20,18 @@ export default function MenuBrowser({ onAdd, cartItemIds }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
-  const categories = ["all", ...new Set(SAMPLE_MENU.map(i => i.category))];
+  const { data: menuItems = [], isLoading } = useQuery({
+    queryKey: ["menuItems"],
+    queryFn: () =>
+      fetch("http://localhost:8000/menu-items")
+        .then(res => res.json())
+        .catch(() => []),
+    refetchInterval: 5000, // Refetch every 5 seconds to catch updates
+  });
 
-  const filtered = SAMPLE_MENU.filter(item => {
+  const categories = ["all", ...new Set(menuItems.map(i => i.category))];
+
+  const filtered = menuItems.filter(item => {
     const matchSearch = item.name.toLowerCase().includes(search.toLowerCase());
     const matchCategory = filter === "all" || item.category === filter;
     return matchSearch && matchCategory;
@@ -56,6 +48,7 @@ export default function MenuBrowser({ onAdd, cartItemIds }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9 h-9 text-xs"
+          disabled={isLoading}
         />
       </div>
 
@@ -67,6 +60,7 @@ export default function MenuBrowser({ onAdd, cartItemIds }) {
             size="sm"
             className="h-7 text-xs capitalize"
             onClick={() => setFilter(cat)}
+            disabled={isLoading}
           >
             {cat}
           </Button>
@@ -74,39 +68,49 @@ export default function MenuBrowser({ onAdd, cartItemIds }) {
       </div>
 
       <div className="space-y-1.5 max-h-[400px] overflow-y-auto pr-1">
-        {filtered.map(item => {
-          const inCart = cartItemIds.includes(item.id);
-          return (
-            <div
-              key={item.id}
-              className={`flex items-center justify-between p-2.5 rounded-lg transition-colors ${
-                inCart ? "bg-primary/5 border border-primary/20" : "hover:bg-secondary/50"
-              }`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className={`h-2 w-2 rounded-full shrink-0 ${item.is_veg ? "bg-accent" : "bg-destructive"}`} />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                  <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 mt-0.5 ${categoryColors[item.category] || ""}`}>
-                    {item.category}
-                  </Badge>
+        {isLoading ? (
+          Array(5).fill(0).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          ))
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-6 text-sm text-muted-foreground">
+            {menuItems.length === 0 ? "No menu items yet. Add some items first." : "No items matching filters"}
+          </div>
+        ) : (
+          filtered.map(item => {
+            const inCart = cartItemIds.includes(item.id);
+            return (
+              <div
+                key={item.id}
+                className={`flex items-center justify-between p-2.5 rounded-lg transition-colors ${
+                  inCart ? "bg-primary/5 border border-primary/20" : "hover:bg-secondary/50"
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`h-2 w-2 rounded-full shrink-0 ${item.is_veg ? "bg-accent" : "bg-destructive"}`} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 mt-0.5 ${categoryColors[item.category] || ""}`}>
+                      {item.category}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <span className="text-sm font-medium text-foreground tabular-nums">₹{item.price}</span>
+                  <Button
+                    size="sm"
+                    variant={inCart ? "secondary" : "outline"}
+                    className="h-7 w-7 p-0"
+                    onClick={() => onAdd(item)}
+                    disabled={inCart}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0 ml-2">
-                <span className="text-sm font-medium text-foreground tabular-nums">₹{item.price}</span>
-                <Button
-                  size="sm"
-                  variant={inCart ? "secondary" : "outline"}
-                  className="h-7 w-7 p-0"
-                  onClick={() => onAdd(item)}
-                  disabled={inCart}
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </Card>
   );
