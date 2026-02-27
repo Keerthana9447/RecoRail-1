@@ -74,25 +74,30 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 ## Local Backend
 A simple Node/Express backend serves menu items and recommendation logic used by the simulator, menu items, and logs pages.
 
-To start it locally you have two options:
+To start it locally you have two options: either run the backend by
+hand and then start the frontend, or use the new `dev` script which does
+both for you.
 
 ```bash
-# run the express server (used during development)
-npm install        # ensure dependencies are installed
-VITE_API_BASE_URL=http://localhost:8000 npm run backend
-# or simply `npm run backend` on Windows PowerShell, then set the env var in
-# the terminal where you launch the frontend as below
-```
+# install deps first (once)
+npm install
 
-When running the React app you can point it at the local server by setting:
+# option 1: start server and client together (recommended)
+npm run dev          # spins up express backend + Vite dev server
 
-```bash
+# option 2: run the backend on its own, then launch the frontend
+npm run backend      # starts express server on :8000
+# in a separate terminal:
 VITE_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
-If `VITE_API_BASE_URL` is not provided the frontend will call the built‑in
-serverless functions under `/api` (this is what happens in production on
-Vercel).
+The front end will automatically proxy `/api/*` to `http://localhost:8000`
+when the backend is running (see `vite.config.js`), so you generally don't
+need to set `VITE_API_BASE_URL` at all when using `npm run dev`.
+
+If `VITE_API_BASE_URL` is omitted and no local server is running, the client
+falls back to the tiny serverless handlers in the `api/` folder; this is
+what happens in production on Vercel.
 
 ### Deploying to Vercel
 Push the repository to a Git provider (GitHub/GitLab/Bitbucket) and import
@@ -111,7 +116,16 @@ The API endpoints are:
 - `GET /logs` — returns recommendation logs
 - `POST /logs` — create a log entry
 
-Logs are generated automatically when you interact with the **Simulator**. Adding an item (from the menu or a recommendation) will fire a POST to `/logs` so that entries appear on the **Logs** page. Make sure `VITE_MOCK_DATA` is **not** set when running in production, and the client should use the real `/api` endpoints instead of mock data.
+Logs are generated automatically on the **server** whenever the
+Simulator requests recommendations. Each call to `POST /api/recommend`
+(issued by the cart whenever items change) writes a log entry, which is
+then returned by `GET /api/logs` and visible on the **Logs** page. The
+previous client-side `POST /logs` behaviour has been removed to keep the
+flow simple and avoid duplicate records.
+
+Make sure `VITE_MOCK_DATA` is **not** set when running in production; the
+client will otherwise use the built-in sample data instead of hitting the
+real `/api` endpoints.
 
 Menu items are seeded with sample data on first server start; state is persisted to `backend/data.db` using SQLite. Logs are also stored there and survive restarts.
 

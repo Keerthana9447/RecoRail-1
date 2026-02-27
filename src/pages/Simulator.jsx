@@ -5,7 +5,10 @@ import ContextPanel from "../components/simulator/ContextPanel";
 import MenuBrowser from "../components/simulator/MenuBrowser";
 import { base44 } from "@/api/base44Client";
 
-// Get recommendations from backend
+// Get recommendations from backend. the server-side handler also
+// writes a log entry for every request, so we don't need to send a second
+// POST to `/logs` from the client; that was the source of confusion when the
+// standalone backend was accidentally disabled.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 async function getRecommendations(cartItems, context) {
   if (cartItems.length === 0) return [];
@@ -24,6 +27,8 @@ async function getRecommendations(cartItems, context) {
     });
 
     const data = await response.json();
+    // the backend returns {recommendations, latency_ms}; logs are created
+    // automatically on the server, so nothing else needed here.
     return data.recommendations || [];
   } catch (err) {
     console.error("Error getting recommendations:", err);
@@ -45,31 +50,8 @@ export default function Simulator() {
 
   const sumPrice = items => items.reduce((s, it) => s + (it.price || 0), 0);
 
-  async function createLog(logData) {
-    try {
-      await base44.entities.RecommendationLog.create(logData);
-    } catch (err) {
-      console.error("Error creating log:", err);
-    }
-  }
-
-  const logEvent = useCallback((cartBefore, recs, acceptedItems) => {
-    const aovBefore = sumPrice(cartBefore);
-    const aovAfter = sumPrice([...cartBefore, ...acceptedItems]);
-    const payload = {
-      session_id: sessionId,
-      meal_time: context.mealTime,
-      user_segment: context.userSegment,
-      city: context.city,
-      cart_items: cartBefore,
-      recommended_items: recs,
-      accepted_items: acceptedItems,
-      aov_before: aovBefore,
-      aov_after: aovAfter,
-      latency_ms: 0,
-    };
-    createLog(payload);
-  }, [context, sessionId]);
+  // logging is now handled by the server (see getRecommendations above),
+  // so the previous helper and event callbacks are no longer required.
 
   const fetchRecommendations = useCallback(async (items) => {
     if (items.length === 0) {
@@ -83,13 +65,11 @@ export default function Simulator() {
   }, [context]);
 
   const addToCart = useCallback((item) => {
-    const cartBefore = [...cartItems];
     const newCart = [...cartItems, item];
     setCartItems(newCart);
     fetchRecommendations(newCart);
-    // log the manual add
-    logEvent(cartBefore, recommendations, [item]);
-  }, [cartItems, fetchRecommendations, logEvent, recommendations]);
+    // server will record this request and the generated recommendations
+  }, [cartItems, fetchRecommendations]);
 
   const removeFromCart = useCallback((id) => {
     const newCart = cartItems.filter(i => i.id !== id);
@@ -98,14 +78,11 @@ export default function Simulator() {
   }, [cartItems, fetchRecommendations]);
 
   const addRecommendation = useCallback((rec) => {
-    const cartBefore = [...cartItems];
     const item = { ...rec, id: `rec_${Date.now()}` };
     const newCart = [...cartItems, item];
     setCartItems(newCart);
     fetchRecommendations(newCart);
-    // log the recommendation acceptance
-    logEvent(cartBefore, recommendations, [item]);
-  }, [cartItems, fetchRecommendations, logEvent, recommendations]);
+  }, [cartItems, fetchRecommendations]);
 
   const totalValue = cartItems.reduce((sum, i) => sum + (i.price || 0), 0);
 
