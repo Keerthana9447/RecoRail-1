@@ -111,5 +111,7 @@ The API endpoints are:
 - `GET /logs` — returns recommendation logs
 - `POST /logs` — create a log entry
 
+Logs are generated automatically when you interact with the **Simulator**. Adding an item (from the menu or a recommendation) will fire a POST to `/logs` so that entries appear on the **Logs** page. Make sure `VITE_MOCK_DATA` is **not** set when running in production, and the client should use the real `/api` endpoints instead of mock data.
+
 Menu items are seeded with sample data on first server start; state is persisted to `backend/data.db` using SQLite. Logs are also stored there and survive restarts.
 

@@ -13,14 +13,12 @@ export default function Logs() {
   const [mealFilter, setMealFilter] = useState("all");
   const [segmentFilter, setSegmentFilter] = useState("all");
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
-  const { data: logs = [], isLoading } = useQuery({
+  // fetch recommendation logs via base44 client, which has a built-in mock fallback
+  const { data: logs = [], isLoading, error } = useQuery({
     queryKey: ["recLogs"],
-    queryFn: () =>
-      fetch(`${API_BASE_URL}/api/logs`)
-        .then(res => res.json())
-        .catch(() => []),
+    queryFn: () => base44.entities.RecommendationLog.list("-created_date", 100),
     refetchInterval: 5000, // poll every 5s to pick up new logs
+    retry: false,
   });
 
   const filtered = logs.filter(log => {
@@ -46,6 +44,7 @@ export default function Logs() {
       <div>
         <h1 className="text-2xl font-bold text-foreground tracking-tight">Recommendation Logs</h1>
         <p className="text-sm text-muted-foreground mt-1">Track recommendation performance and acceptance metrics</p>
+        {error && <p className="text-sm text-destructive mt-2">Unable to load logs, showing sample data.</p>}
       </div>
 
       {/* Summary strip */}

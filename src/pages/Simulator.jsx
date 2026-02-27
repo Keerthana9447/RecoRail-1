@@ -1,11 +1,12 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import CartPanel from "../components/simulator/CartPanel";
 import RecommendationRail from "../components/simulator/RecommendationRail";
 import ContextPanel from "../components/simulator/ContextPanel";
 import MenuBrowser from "../components/simulator/MenuBrowser";
+import { base44 } from "@/api/base44Client";
 
 // Get recommendations from backend
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 async function getRecommendations(cartItems, context) {
   if (cartItems.length === 0) return [];
 
@@ -40,6 +41,35 @@ export default function Simulator() {
     userSegment: "frequent",
     city: "hyderabad"
   });
+  const [sessionId] = useState(() => `session_${Date.now()}`);
+
+  const sumPrice = items => items.reduce((s, it) => s + (it.price || 0), 0);
+
+  async function createLog(logData) {
+    try {
+      await base44.entities.RecommendationLog.create(logData);
+    } catch (err) {
+      console.error("Error creating log:", err);
+    }
+  }
+
+  const logEvent = useCallback((cartBefore, recs, acceptedItems) => {
+    const aovBefore = sumPrice(cartBefore);
+    const aovAfter = sumPrice([...cartBefore, ...acceptedItems]);
+    const payload = {
+      session_id: sessionId,
+      meal_time: context.mealTime,
+      user_segment: context.userSegment,
+      city: context.city,
+      cart_items: cartBefore,
+      recommended_items: recs,
+      accepted_items: acceptedItems,
+      aov_before: aovBefore,
+      aov_after: aovAfter,
+      latency_ms: 0,
+    };
+    createLog(payload);
+  }, [context, sessionId]);
 
   const fetchRecommendations = useCallback(async (items) => {
     if (items.length === 0) {
@@ -53,10 +83,13 @@ export default function Simulator() {
   }, [context]);
 
   const addToCart = useCallback((item) => {
+    const cartBefore = [...cartItems];
     const newCart = [...cartItems, item];
     setCartItems(newCart);
     fetchRecommendations(newCart);
-  }, [cartItems, fetchRecommendations]);
+    // log the manual add
+    logEvent(cartBefore, recommendations, [item]);
+  }, [cartItems, fetchRecommendations, logEvent, recommendations]);
 
   const removeFromCart = useCallback((id) => {
     const newCart = cartItems.filter(i => i.id !== id);
@@ -65,11 +98,14 @@ export default function Simulator() {
   }, [cartItems, fetchRecommendations]);
 
   const addRecommendation = useCallback((rec) => {
+    const cartBefore = [...cartItems];
     const item = { ...rec, id: `rec_${Date.now()}` };
     const newCart = [...cartItems, item];
     setCartItems(newCart);
     fetchRecommendations(newCart);
-  }, [cartItems, fetchRecommendations]);
+    // log the recommendation acceptance
+    logEvent(cartBefore, recommendations, [item]);
+  }, [cartItems, fetchRecommendations, logEvent, recommendations]);
 
   const totalValue = cartItems.reduce((sum, i) => sum + (i.price || 0), 0);
 
